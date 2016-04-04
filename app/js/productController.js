@@ -7,14 +7,19 @@ productMainController.controller('addProductController', ['$scope', '$http', '$l
         $scope.product = {};
         $scope.addPerson = true;
         $scope.editPerson = false;
-        $scope.addProduct = function () {
+        $scope.addProduct = function (flowFiles) {
 
             //$http.post("/product", $scope.product).success(function () {
-            productService.save($scope.product,function(){
-                $rootScope.addSuccess = true;
-                $location.path("listProduct");
-
+            productService.save($scope.product,function(data){
+                var productid = data.id;
+                flowFiles.opts.target = 'http://localhost:8080/productImage/add';
+                flowFiles.opts.testChunks = false;
+                flowFiles.opts.query = {productid:productid};
+                flowFiles.upload();
+                $scope.$apply();
             });
+            $rootScope.addSuccess = true;
+            $location.path("listProduct");
         };
 
 
@@ -23,6 +28,7 @@ productMainController.controller('addProductController', ['$scope', '$http', '$l
 productMainController.controller('listProductController', ['$scope', '$http', '$rootScope','productService','$route','totalCalService','queryProductService',
     function ($scope, $http, $rootScope,productService,$route,totalCalService,queryProductService) {
         //$http.get("/product/").success(function (data) {
+
         var data = productService.query(function(){
            // $scope.totalNetPrice= totalCalService.getTotalNetPrice(data);
             $scope.products = data;
@@ -58,15 +64,41 @@ productMainController.controller('editProductController', ['$scope', '$http', '$
         $scope.addPerson = false;
         $scope.editPerson = true;
         var id = $routeParams.id;
-        $http.get("/product/" + id).success(function (data) {
+        $http.get("http://localhost:8080/product/" + id).success(function (data) {
             $scope.product = data;
         });
 
-        $scope.editProduct = function () {
+        $scope.editProduct = function (flowFiles) {
             //$http.put("/product", $scope.product).then(function () {
-            productService.update({id:$scope.product.id},$scope.product,function(){
+            var pd = angular.copy($scope.product);
+            //pd.images = [];
+            productService.update({
+                id:$scope.product.id,
+                name:$scope.product.name,
+                description:$scope.product.description,
+                totalPrice:$scope.product.totalPrice
+            },function(data){
+                var productid = data.id;
+                flowFiles.opts.target = 'http://localhost:8080/productImage/add';
+                flowFiles.opts.testChunks = false;
+                flowFiles.opts.query = {productid:productid};
+                flowFiles.upload();
                 $rootScope.editSuccess = true;
                 $location.path("listProduct");
             });
         }
+
+        $scope.removeImage = function(pdId, imgId) {
+            var r = confirm("Are you sure?");
+            if (r == true) {
+                $http.delete("http://localhost:8080/productImage/remove?productid="+pdId+"&imageid="+imgId).then(function () {
+                    $http.get("http://localhost:8080/product/" + pdId).success(function (data) {
+                        $scope.product = data;
+                    });
+                }, function(){
+                    console.log("FAILED");
+                });
+            }
+        }
+
     }]);

@@ -7,7 +7,8 @@ var labApp = angular.module('labApp', [
     'languageControllers',
     'languageServices',
     'pascalprecht.translate',
-    'shoppingCartControllers'
+    'shoppingCartControllers',
+    'flow'
 ])
 labApp.config(['$routeProvider',
   function($routeProvider) {
@@ -32,8 +33,33 @@ labApp.config(['$routeProvider',
 }]);
 
 labApp.config(function($translateProvider){
-    $translateProvider.useUrlLoader('/messageBundle');
+    $translateProvider.useUrlLoader('http://localhost:8080/messageBundle');
     $translateProvider.useStorage('UrlLanguageStorage');
     $translateProvider.preferredLanguage('en');
     $translateProvider.fallbackLanguage('en');
 })
+
+labApp.config( [
+    '$compileProvider',
+    function( $compileProvider )
+    {
+        $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|file|chrome-extension):/);
+        // Angular before v1.2 uses $compileProvider.urlSanitizationWhitelist(...)
+        $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|local|data):/);
+    }
+]);
+
+
+labApp.config(['flowFactoryProvider', function(flowFactoryProvider) {
+    flowFactoryProvider.defaults = {
+        target: '',
+        permanentErrors: [500,501],
+        maxChunkRetries: 1,
+        simultaneousUploads: 4,
+        singleFile: false
+    };
+    flowFactoryProvider.on('catchAll', function(event){
+        console.log('catchAll', arguments);
+    });
+
+}])
